@@ -96,7 +96,7 @@ class ParseratorType(StringType) :
                   ('same name type?', 'Dummy')]
 
         fields += [(k.lower(), 'Dummy')
-                   for k in self.variable_types.keys()[1:]] 
+                   for k in list(self.variable_types.keys())[1:]] 
 
         fields += [(part, 'String') 
                    for part in self.variable_parts]
