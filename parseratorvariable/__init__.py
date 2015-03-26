@@ -8,6 +8,7 @@ from affinegap import normalizedAffineGapDistance as compareString
 import functools
 
 class ParseratorType(StringType) :
+    type = None
 
     def __len__(self) :
         return self.expanded_size
