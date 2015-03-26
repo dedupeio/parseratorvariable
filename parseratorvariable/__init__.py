@@ -48,13 +48,11 @@ class ParseratorType(StringType) :
             parsed_variable_1, variable_type_1 = self.tagger(field_1) 
             parsed_variable_2, variable_type_2  = self.tagger(field_2)
         except Exception as e :
-            print(e)
             if self.log_file :
                 import csv
                 with open(self.log_file, 'a') as f :
                     writer = csv.writer(f)
-                    writer.writerow([field_1])
-                    writer.writerow([field_2])
+                    writer.writerow([e.original_string])
             distances[i:3] = [1, 0]
             distances[-1] = compareString(field_1, field_2)
             return distances
