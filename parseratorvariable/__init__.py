@@ -51,7 +51,7 @@ class ParseratorType(StringType) :
         except Exception as e :
             if self.log_file :
                 import csv
-                with open(self.log_file, 'ab') as f :
+                with open(self.log_file, 'a') as f :
                     writer = csv.writer(f)
                     writer.writerow([e.original_string.encode('utf8')])
             distances[i:3] = [1, 0]
