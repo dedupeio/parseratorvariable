@@ -4,8 +4,9 @@ from dedupe.variables.base import DerivedType
 from dedupe.variables.string import StringType
 import functools
 import numpy
-from affinegap import normalizedAffineGapDistance as compareString
 import functools
+
+compareString = StringType.comparator
 
 class ParseratorType(StringType) :
     type = None
