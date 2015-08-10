@@ -98,7 +98,7 @@ class ParseratorType(StringType) :
         fields += [(k.lower(), 'Dummy')
                    for k in list(self.variable_types.keys())[1:]] 
 
-        fields += [(part, 'String') 
+        fields += [(part, 'Derived') 
                    for part in self.variable_parts]
 
         fields += [('%s: Not Missing' % (part,), 
@@ -164,10 +164,13 @@ def comparePermutable(tags_1, tags_2, field_1, field_2) :
 
 def consolidate(d, components) :
     for component in components :
-        merged_component = ' '.join(d[part]  
-                                    for part in component
-                                    if part in d)
-        yield merged_component
+        available_component = [part for part in component if part in d]
+        # Sometimes we want to return non strings so we have to avoid
+        # join
+        if len(available_components) == 1 :
+            yield d[available_component[0]]
+        else :
+            yield ' '.join(d[part] for part in available_component)
 
     
 def indicatorVector(value, n_categories) :
