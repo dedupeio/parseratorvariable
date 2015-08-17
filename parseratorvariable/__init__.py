@@ -1,12 +1,10 @@
 from collections import OrderedDict
 
-from dedupe.variables.base import DerivedType
-from dedupe.variables.string import StringType
+from dedupe.variables.base import DerivedType, FieldType
+from dedupe.variables.string import StringType, crfEd, affineGap
 import functools
 import numpy
 import functools
-
-compareString = StringType.comparator
 
 class ParseratorType(StringType) :
     type = None
@@ -14,9 +12,15 @@ class ParseratorType(StringType) :
     def __len__(self) :
         return self.expanded_size
 
-
     def __init__(self, definition) :
-        super(ParseratorType, self).__init__(definition)
+        FieldType.__init__(self, definition)
+
+        if definition.get('crf', False) == True :
+            self.compareString = crfEd
+        else :
+            self.compareString = affineGap
+
+        self._definition = definition
 
         self.variable_types, self.variable_parts = comparisons(self.components)
 
@@ -35,6 +39,13 @@ class ParseratorType(StringType) :
                             for variable, field_type in fields]
 
         self.log_file = definition.get('log file', None)
+
+    def __getstate__(self) :
+        return self._definition.copy()
+
+    def __setstate__(self, d) :
+        self.__init__(d)
+
 
     def comparator(self, field_1, field_2) :
         distances = numpy.zeros(self.expanded_size)
@@ -56,16 +67,16 @@ class ParseratorType(StringType) :
                     writer = csv.writer(f)
                     writer.writerow([e.original_string.encode('utf8')])
             distances[i:3] = [1, 0]
-            distances[-1] = compareString(field_1, field_2)
+            distances[-1] = self.compareString(field_1, field_2)
             return distances
 
         if 'Ambiguous' in (variable_type_1, variable_type_2) :
             distances[i:3] = [1, 0]
-            distances[-1] = compareString(field_1, field_2)
+            distances[-1] = self.compareString(field_1, field_2)
             return distances
         elif variable_type_1 != variable_type_2 :
             distances[i:3] = [0, 0]
-            distances[-1] = compareString(field_1, field_2)
+            distances[-1] = self.compareString(field_1, field_2)
             return distances
         elif variable_type_1 == variable_type_2 : 
             distances[i:3] = [0, 1]
@@ -109,6 +120,31 @@ class ParseratorType(StringType) :
 
         return fields
 
+    def compareFields(self, parts, field_1, field_2) :
+        joinParts = functools.partial(consolidate, components=parts)    
+        for part_1, part_2 in zip(*map(joinParts, [field_1, field_2])) :
+            yield self.compareString(part_1, part_2)
+
+    def comparePermutable(self, tags_1, tags_2, field_1, field_2) :
+
+        section_1A = tuple(consolidate(field_1, tags_1))
+        section_1B = tuple(consolidate(field_1, tags_2))
+        whole_2 = tuple(consolidate(field_2, tags_1 + tags_2))
+
+        straight_distances = [self.compareString(part_1, part_2)
+                              for part_1, part_2 
+                              in zip(section_1A + section_1B, whole_2)]
+
+        permuted_distances = [self.compareString(part_1, part_2)
+                               for part_1, part_2 
+                               in zip(section_1B + section_1A, whole_2)]
+
+        if numpy.nansum(straight_distances) <= numpy.nansum(permuted_distances) :
+            return straight_distances
+        else :
+            return permuted_distances
+
+
 
 def comparisons(components) :
     variable_types = OrderedDict()
@@ -137,29 +173,6 @@ def comparisons(components) :
     return variable_types, tag_names
 
 
-def compareFields(parts, field_1, field_2) :
-    joinParts = functools.partial(consolidate, components=parts)    
-    for part_1, part_2 in zip(*map(joinParts, [field_1, field_2])) :
-        yield compareString(part_1, part_2)
-
-def comparePermutable(tags_1, tags_2, field_1, field_2) :
-
-    section_1A = tuple(consolidate(field_1, tags_1))
-    section_1B = tuple(consolidate(field_1, tags_2))
-    whole_2 = tuple(consolidate(field_2, tags_1 + tags_2))
-
-    straight_distances = [compareString(part_1, part_2)
-                          for part_1, part_2 
-                          in zip(section_1A + section_1B, whole_2)]
-
-    permuted_distances = [compareString(part_1, part_2)
-                           for part_1, part_2 
-                           in zip(section_1B + section_1A, whole_2)]
-
-    if numpy.nansum(straight_distances) <= numpy.nansum(permuted_distances) :
-        return straight_distances
-    else :
-        return permuted_distances
 
 
 def consolidate(d, components) :
@@ -167,7 +180,7 @@ def consolidate(d, components) :
         available_component = [part for part in component if part in d]
         # Sometimes we want to return non strings so we have to avoid
         # join
-        if len(available_components) == 1 :
+        if len(available_component) == 1 :
             yield d[available_component[0]]
         else :
             yield ' '.join(d[part] for part in available_component)
