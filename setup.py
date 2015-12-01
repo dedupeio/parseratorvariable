@@ -7,7 +7,11 @@ except ImportError :
 setup(
     name='parseratorvariable',
     url='https://github.com/datamade/parseratorvariables',
+<<<<<<< HEAD
     version='0.0.12',
+=======
+    version='0.0.10',
+>>>>>>> parent of 613e0b2... handle nones upstream
     description='Structured variable type for dedupe',
     packages=['parseratorvariable'],
     install_requires=['dedupe>=1.0.0', 'future'],
