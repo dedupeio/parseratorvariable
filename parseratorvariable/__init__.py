@@ -16,9 +16,9 @@ class ParseratorType(StringType) :
         FieldType.__init__(self, definition)
 
         if definition.get('crf', False) == True :
-            self.compareString = crfEd
+            self._string_comparison = crfEd
         else :
-            self.compareString = affineGap
+            self._string_comparison = affineGap
 
         self._definition = definition
 
@@ -146,6 +146,11 @@ class ParseratorType(StringType) :
         else :
             return permuted_distances
 
+    def compareString(self, string_1, string_2) :
+        if string_1 and string_2 :
+            return self._string_comparison(string_1, string_2)
+        else :
+            return numpy.nan
 
 
 def comparisons(components) :
