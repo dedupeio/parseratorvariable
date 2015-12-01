@@ -8,7 +8,6 @@ setup(
     name='parseratorvariable',
     url='https://github.com/datamade/parseratorvariables',
     version='0.0.12',
-    version='0.0.10',
     description='Structured variable type for dedupe',
     packages=['parseratorvariable'],
     install_requires=['dedupe>=1.0.0', 'future'],
