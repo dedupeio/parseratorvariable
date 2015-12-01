@@ -101,6 +101,8 @@ class ParseratorType(StringType) :
 
         return distances
 
+    comparator.missing = True
+
     def fields(self, field) :
         fields = [('%s: Not Missing' % field, 'Dummy'),
                   ('ambiguous', 'Dummy'),
