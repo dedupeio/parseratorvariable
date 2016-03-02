@@ -1,19 +1,23 @@
 from collections import OrderedDict
 
-from dedupe.variables.base import DerivedType, FieldType
-from dedupe.variables.string import StringType, crfEd, affineGap
+from dedupe.variables.base import DerivedType
+from dedupe.variables.string import BaseStringType, StringType, crfEd, affineGap
 import functools
 import numpy
 import functools
 
-class ParseratorType(StringType) :
+class ParseratorType(BaseStringType) :
     type = None
+
+    _predicate_functions = StringType._predicate_functions
+    _index_predicates = StringType._index_predicates
+    _index_thresholds = StringType._index_thresholds
 
     def __len__(self) :
         return self.expanded_size
 
     def __init__(self, definition) :
-        FieldType.__init__(self, definition)
+        super(ParseratorType, self).__init__(definition)
 
         if definition.get('crf', False) == True :
             self._string_comparison = crfEd
