@@ -1,10 +1,10 @@
 from collections import OrderedDict
+import functools
 
+import numpy
 from dedupe.variables.base import DerivedType
 from dedupe.variables.string import BaseStringType, StringType, crfEd, affineGap
-import functools
-import numpy
-import functools
+from probableparsing import RepeatedLabelError
 
 class ParseratorType(BaseStringType) :
     type = None
@@ -64,18 +64,15 @@ class ParseratorType(BaseStringType) :
         try :
             parsed_variable_1, variable_type_1 = self.tagger(field_1) 
             parsed_variable_2, variable_type_2  = self.tagger(field_2)
-        except Exception as e :
-            if e.message.startswith('ERROR: Unable to tag this string') :
-                if self.log_file :
-                    import csv
-                    with open(self.log_file, 'a') as f :
-                        writer = csv.writer(f)
-                        writer.writerow([e.original_string.encode('utf8')])
-                distances[i:3] = [1, 0]
-                distances[-1] = self.compareString(field_1, field_2)
-                return distances
-            else:
-                raise
+        except RepeatedLabelError :
+            if self.log_file :
+                import csv
+                with open(self.log_file, 'a') as f :
+                    writer = csv.writer(f)
+                    writer.writerow([e.original_string.encode('utf8')])
+            distances[i:3] = [1, 0]
+            distances[-1] = self.compareString(field_1, field_2)
+            return distances
 
         if 'Ambiguous' in (variable_type_1, variable_type_2) :
             distances[i:3] = [1, 0]
