@@ -64,7 +64,7 @@ class ParseratorType(BaseStringType) :
         try :
             parsed_variable_1, variable_type_1 = self.tagger(field_1) 
             parsed_variable_2, variable_type_2  = self.tagger(field_2)
-        except RepeatedLabelError :
+        except RepeatedLabelError as e:
             if self.log_file :
                 import csv
                 with open(self.log_file, 'a') as f :
