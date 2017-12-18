@@ -2,9 +2,55 @@ from collections import OrderedDict
 import functools
 
 import numpy
+from dedupe import predicates
 from dedupe.variables.base import DerivedType
 from dedupe.variables.string import BaseStringType, StringType, crfEd, affineGap
 from probableparsing import RepeatedLabelError
+
+class Partial(object):
+    cached_field = None
+    cached_results = None
+
+    def __init__(self, *args, **kwargs):
+        self.part = kwargs.pop('part')
+        super(Partial, self).__init__(*args, **kwargs)
+        self.__name__ = '(%s, %s, %s)' % (self.threshold, self.field, self.part)
+
+    def preprocess(self, doc):
+        tags = self.tag(doc)
+        part = tags.get(self.part, '')
+        return super(Partial, self).preprocess(part)
+
+    @classmethod
+    def tag(cls, field):
+        if field == cls.cached_field:
+            return cls.cached_results
+
+        cls.cached_field = field
+        try:
+            cls.cached_results, _ = cls.tagger(field)
+        except RepeatedLabelError:
+            cls.cached_results = {}
+
+        return cls.cached_results
+
+class PLCPredicate(Partial, predicates.LevenshteinCanopyPredicate):
+    type = "PartialLevenshteinCanopyPredicate"
+
+class PLSPredicate(Partial, predicates.LevenshteinSearchPredicate):
+    type = "PartialLevenshteinSearchPredicate"
+
+class PTNCPredicate(Partial, predicates.TfidfNGramCanopyPredicate):
+    type = "PartialTfidfNGramCanopyPredicate"
+
+class PTNSPredicate(Partial, predicates.TfidfNGramSearchPredicate):
+    type = "PartialTfidfNGramSearchPredicate"
+
+class PTTCPredicate(Partial, predicates.TfidfTextCanopyPredicate):
+    type = "PartialTfidfTextCanopyPredicate"
+
+class PTTSPredicate(Partial, predicates.TfidfTextSearchPredicate):
+    type = "PartialTfidfTextSearchPredicate"
 
 class ParseratorType(BaseStringType) :
     type = None
@@ -12,6 +58,9 @@ class ParseratorType(BaseStringType) :
     _predicate_functions = StringType._predicate_functions
     _index_predicates = StringType._index_predicates
     _index_thresholds = StringType._index_thresholds
+    _partial_index_predicates = (#PLCPredicate, PLSPredicate,
+                                 PTNCPredicate, PTNSPredicate,
+                                 PTTCPredicate, PTTSPredicate) 
 
     def __len__(self) :
         return self.expanded_size
