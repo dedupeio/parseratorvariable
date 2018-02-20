@@ -1,3 +1,4 @@
+from probableparsing import RepeatedLabelError
 from dedupe import predicates
 
 class Partial(object):
@@ -60,7 +61,9 @@ class PartialString(Partial, predicates.StringPredicate):
         if not column :
             return ()
 
-        tags = self.tag(field)
+        tags = self.tag(column)
         part = tags.get(self.part)
+        if not part:
+            return ()
 
-        return super(PartialString, self)(part)
+        return super(PartialString, self).__call__({self.field: part})

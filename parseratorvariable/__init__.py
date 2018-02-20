@@ -21,7 +21,7 @@ class ParseratorType(BaseStringType) :
     def __len__(self) :
         return self.expanded_size
 
-    def __init__(self, definition, block_parts=None, tag=None) :
+    def __init__(self, definition, block_parts=(), tag=None) :
         super(ParseratorType, self).__init__(definition)
 
         if definition.get('crf', False) == True :
@@ -49,18 +49,19 @@ class ParseratorType(BaseStringType) :
 
         self.log_file = definition.get('log file', None)
 
-        if block_parts:
-            self.predicates += [predicates.PartialString(pred, self.field, part)
-                                for pred in self._predicate_functions
-                                for part in block_parts]
 
+        if block_parts:
+            # this will probably not work if we have more than one parseratrovariable
+            predicates.PartialString.tagger = self.tag
+        for part in block_parts:
+            for pred in self._predicate_functions:
+                partial_pred = predicates.PartialString(pred, self.field, part)
+                self.predicates.append(partial_pred)
             for pred in self._partial_index_predicates:
                 pred.tagger = self.tag
-
-            self.predicates += [pred(threshold, self.field, part=part)
-                                for pred in self._partial_index_predicates
-                                for part in block_parts
-                                for threshold in self._index_thresholds]
+                for threshold in self._index_thresholds:
+                    partial_pred = pred(threshold, self.field, part=part)
+                    self.predicates.append(partial_pred)
 
 
     def __getstate__(self) :
