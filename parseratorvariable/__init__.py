@@ -69,9 +69,9 @@ class ParseratorType(BaseStringType) :
                     self.predicates.append(partial_pred)
 
     @lru_cache(maxsize=5000)
-    def tag(self, field):
+    def tag(self, field, *args):
         try:
-            result = self._tagger(field)
+            result = self._tagger(field, *args)
         except RepeatedLabelError as e:
             if self.log_file :
                 import csv
