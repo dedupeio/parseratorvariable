@@ -9,7 +9,7 @@ requirements = ['dedupe>=1.0.0',
 try:
     from functools import lru_cache
 except ImportError:
-    requirements += ['backports.lru_cache']
+    requirements += ['backports.functools_lru_cache']
 
 
 setup(
