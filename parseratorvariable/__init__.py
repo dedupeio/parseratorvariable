@@ -6,17 +6,26 @@ from dedupe.variables.base import DerivedType
 from dedupe.variables.string import BaseStringType, StringType, crfEd, affineGap
 from probableparsing import RepeatedLabelError
 
+from . import predicates
+
+try:
+    from functools import lru_cache
+except ImportError:
+    from backports.functools_lru_cache import lru_cache
+
 class ParseratorType(BaseStringType) :
     type = None
 
     _predicate_functions = StringType._predicate_functions
     _index_predicates = StringType._index_predicates
     _index_thresholds = StringType._index_thresholds
+    _partial_index_predicates = (predicates.PTNCPredicate, predicates.PTNSPredicate,
+                                 predicates.PTTCPredicate, predicates.PTTSPredicate) 
 
     def __len__(self) :
         return self.expanded_size
 
-    def __init__(self, definition) :
+    def __init__(self, definition, tagger=None, block_parts=()) :
         super(ParseratorType, self).__init__(definition)
 
         if definition.get('crf', False) == True :
@@ -44,6 +53,36 @@ class ParseratorType(BaseStringType) :
 
         self.log_file = definition.get('log file', None)
 
+        self._tagger = tagger
+
+        for part in block_parts:
+            for pred in self._predicate_functions:
+                partial_pred = predicates.PartialString(pred, self.field, part, self.tag)
+                self.predicates.append(partial_pred)
+            for pred in self._partial_index_predicates:
+                for threshold in self._index_thresholds:
+                    partial_pred = pred(threshold, self.field, part=part, tag=self.tag)
+                    self.predicates.append(partial_pred)
+            for pred in (predicates.PLCPredicate, predicates.PLSPredicate):
+                for distance in (1, 2, 3, 4):
+                    partial_pred = pred(distance, self.field, part=part, tag=self.tag)
+                    self.predicates.append(partial_pred)
+
+    @lru_cache(maxsize=5000)
+    def tag(self, field, *args):
+        try:
+            result = self._tagger(field, *args)
+        except RepeatedLabelError as e:
+            if self.log_file :
+                import csv
+                with open(self.log_file, 'a') as f :
+                    writer = csv.writer(f)
+                    writer.writerow([e.original_string.encode('utf8')])
+            result = None
+
+        return result
+
+
     def __getstate__(self) :
         return self._definition.copy()
 
@@ -64,12 +103,7 @@ class ParseratorType(BaseStringType) :
         try :
             parsed_variable_1, variable_type_1 = self.tagger(field_1) 
             parsed_variable_2, variable_type_2  = self.tagger(field_2)
-        except RepeatedLabelError as e:
-            if self.log_file :
-                import csv
-                with open(self.log_file, 'a') as f :
-                    writer = csv.writer(f)
-                    writer.writerow([e.original_string.encode('utf8')])
+        except TypeError:
             distances[i:3] = [1, 0]
             distances[-1] = self.compareString(field_1, field_2)
             return distances
